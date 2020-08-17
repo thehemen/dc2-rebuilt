@@ -1,0 +1,6 @@
+{
+	"indent_space_amount": 4,
+	"openmp_num_threads": 4,
+	"lang_token_share": 0.95,
+	"lang_en_common_share": 0.05
+}

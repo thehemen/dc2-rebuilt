@@ -1,7 +1,13 @@
 #include <vector>
 #include <map>
 #include <tuple>
+#include <fstream>
 #include <nlohmann/json.hpp>
+#include <omp.h>
+
+#include <article.h>
+#include <lang_detector.h>
+#include <utils.h>
 
 #ifndef ENGINE_H
 #define ENGINE_H
@@ -79,12 +85,24 @@ namespace ra {
 class Engine
 {
 	int indent_space_amount;
+	int openmp_num_threads;
+	double lang_token_share;
+    double lang_en_common_share;
 public:
 	Engine() {}
 
-	Engine(int indent_space_amount)
+	Engine(string filename)
 	{
-		this->indent_space_amount = indent_space_amount;
+		ifstream i(filename);
+		json j;
+		i >> j;
+
+		indent_space_amount = j["indent_space_amount"];
+		openmp_num_threads = j["openmp_num_threads"];
+		lang_token_share = j["lang_token_share"];
+		lang_en_common_share = j["lang_en_common_share"];
+
+		omp_set_num_threads(openmp_num_threads);
 	}
 
 	string run_cli_languages(string source_dir)
@@ -92,6 +110,27 @@ public:
 		vector<la::LanguageArticles> articles;
 		articles.push_back(la::LanguageArticles{"en", vector<string>()});
 		articles.push_back(la::LanguageArticles{"ru", vector<string>()});
+		LanguageDetector languageDetector(lang_token_share, lang_en_common_share);
+		vector<string> paths = get_filename_list(source_dir);
+
+		#pragma omp parallel for
+		for (auto it = paths.begin(); it < paths.end(); it++)
+		{
+			string path(*it);
+	    	string filename = get_filename_only(path);
+			Article article(path.c_str());
+			string lang_code = languageDetector.detect(article.get_text_tk());
+
+			if(lang_code == "en")
+			{
+				articles[0].articles.push_back(filename);
+			}
+			else if(lang_code == "ru")
+			{
+				articles[1].articles.push_back(filename);
+			}
+	    }
+
 		return json(articles).dump(indent_space_amount);
 	}
 

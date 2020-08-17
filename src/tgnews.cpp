@@ -22,9 +22,7 @@ int main(int argc, char *argv[])
 
     string op_type = argv[1];
     string op_value = argv[2];
-
-    int indent_space_amount = 4;
-    Engine engine(indent_space_amount);
+    Engine engine("settings.json");
 
 	if(op_type == "languages")
 	{
