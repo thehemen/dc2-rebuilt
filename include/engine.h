@@ -8,6 +8,7 @@
 #include <article.h>
 #include <lang_detector.h>
 #include <news_detector.h>
+#include <category_classifier.h>
 #include <utils.h>
 
 #ifndef ENGINE_H
@@ -87,8 +88,12 @@ class Engine
 {
 	int indent_space_amount;
 	int openmp_num_threads;
-	double lang_token_share;
-    double lang_en_common_share;
+	double language_token_share;
+    double language_en_common_share;
+    string en_category_filename;
+    string ru_category_filename;
+    double category_min_char_share;
+    map<string, int> category_min_token_count;
 public:
 	Engine() {}
 
@@ -100,8 +105,12 @@ public:
 
 		indent_space_amount = j["indent_space_amount"];
 		openmp_num_threads = j["openmp_num_threads"];
-		lang_token_share = j["lang_token_share"];
-		lang_en_common_share = j["lang_en_common_share"];
+		language_token_share = j["language_token_share"];
+		language_en_common_share = j["language_en_common_share"];
+		en_category_filename = j["en_category_filename"];
+		ru_category_filename = j["ru_category_filename"];
+		category_min_char_share = j["category_min_char_share"];
+		category_min_token_count = {{"en", j["category_en_min_token_count"]}, {"ru", j["category_ru_min_token_count"]}};
 
 		omp_set_num_threads(openmp_num_threads);
 	}
@@ -111,7 +120,7 @@ public:
 		vector<la::LanguageArticles> articles;
 		articles.push_back(la::LanguageArticles{"en", vector<string>()});
 		articles.push_back(la::LanguageArticles{"ru", vector<string>()});
-		LanguageDetector languageDetector(lang_token_share, lang_en_common_share);
+		LanguageDetector languageDetector(language_token_share, language_en_common_share);
 		vector<string> paths = get_filename_list(source_dir);
 
 		#pragma omp parallel for
@@ -139,7 +148,7 @@ public:
 	{
 		map<string, vector<string>> articles;
 		articles["articles"] = vector<string>();
-		LanguageDetector languageDetector(lang_token_share, lang_en_common_share);
+		LanguageDetector languageDetector(language_token_share, language_en_common_share);
 		NewsDetector newsDetector;
 		vector<string> paths = get_filename_list(source_dir);
 
@@ -172,6 +181,31 @@ public:
 		{
 			articles.push_back(ca::CategoryArticles{category, vector<string>()});
 		}
+
+		LanguageDetector languageDetector(language_token_share, language_en_common_share);
+		NewsDetector newsDetector;
+		CategoryClassifier categoryClassifier(en_category_filename, ru_category_filename,
+			category_min_char_share, category_min_token_count);
+		vector<string> paths = get_filename_list(source_dir);
+
+		#pragma omp parallel for
+		for (auto it = paths.begin(); it < paths.end(); it++)
+		{
+			string path(*it);
+            string filename = get_filename_only(path);
+			Article article(path.c_str());
+			string lang_code = languageDetector.detect(article.get_text_tk());
+
+			if(lang_code == "en" || lang_code == "ru")
+			{
+				if(newsDetector.is_news(article.get_header_tk(), lang_code))
+				{
+					string category = categoryClassifier.classify(article.get_text_tk(), lang_code);
+					int category_index = get_index_by_string(categories, category);
+					articles[category_index].articles.push_back(filename);
+				}
+			}
+	    }
 
 		return json(articles).dump(indent_space_amount);
 	}

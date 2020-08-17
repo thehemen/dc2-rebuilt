@@ -1,4 +1,5 @@
 #include <vector>
+#include <map>
 #include <string>
 #include <sstream>
 #include <fstream>
@@ -98,6 +99,28 @@ vector<string> get_filename_list(string source_dir)
 string get_filename_only(string filename)
 {
 	return filename.substr(filename.find_last_of("/\\") + 1);
+}
+
+int get_index_by_string(vector<string> str_list, string str) 
+{ 
+	return distance(str_list.begin(), find(str_list.begin(), str_list.end(), str));
+} 
+
+pair<string, int> get_pair_by_max_value(map<string, int> counter)
+{
+	string category_best("other");
+	int max_count = 0;
+
+	for(const auto & [category, count] : counter)
+	{
+		if(count > max_count)
+		{
+			max_count = count;
+			category_best = category;
+		}
+	}
+
+	return pair<string, int>(category_best, max_count);
 }
 
 #endif

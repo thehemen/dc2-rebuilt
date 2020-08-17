@@ -1,6 +1,11 @@
 {
 	"indent_space_amount": 4,
 	"openmp_num_threads": 4,
-	"lang_token_share": 0.95,
-	"lang_en_common_share": 0.05
+	"language_token_share": 0.95,
+	"language_en_common_share": 0.05,
+	"en_category_filename": "en_key_words.txt",
+	"ru_category_filename": "ru_key_words.txt",
+	"category_min_char_share": 0.75,
+	"category_en_min_token_count": 4,
+	"category_ru_min_token_count": 2
 }
