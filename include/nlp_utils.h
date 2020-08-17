@@ -35,7 +35,7 @@ vector<wstring> tokenize(wstring text, wchar_t delimiter = L' ')
 vector<wstring> tokenize_with_punctuation(wstring text)
 {
 	vector<wstring> tokens;
-	vector<wchar_t> punct_signs = { L'.', L',', L':', L';', L'!', L'?', L'\"', L'“', L'«', L'»', L'-' };
+	vector<wchar_t> punct_signs = { L'.', L',', L':', L';', L'!', L'?', L'\'', L'\"', L'“', L'«', L'»', L'-' };
 	vector<size_t> positions;
 
 	wstring nonewlines = replace_with(text, L"\n", L" ");
