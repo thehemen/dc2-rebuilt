@@ -3,8 +3,10 @@
 
 	"server":
 	{
+		"address": "127.0.0.1",
 		"thread_num": 4,
-		"keep_alive_count": 100
+		"keep_alive_count": 100,
+		"index_dir": "indexed"
 	},
 
 	"languages":

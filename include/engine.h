@@ -2,6 +2,7 @@
 #include <map>
 #include <tuple>
 #include <fstream>
+#include <mutex>
 #include <nlohmann/json.hpp>
 #include <omp.h>
 
@@ -77,6 +78,11 @@ namespace ra {
         string title;
         string category;
         vector<string> articles;
+
+        bool operator< (const RankedArticles &other) const
+        {
+            return articles.size() > other.articles.size();
+        }
     };
 
     void to_json(json& j, const RankedArticles& p) {
@@ -99,8 +105,11 @@ class Engine
 
 public:
 	int indent_space_amount;
+
+	string address;
 	int thread_num;
 	int keep_alive_count;
+	string index_dir;
 
 	Engine() {}
 
@@ -111,8 +120,11 @@ public:
 		i >> j;
 
 		indent_space_amount = j["indent_space_amount"];
+
+		address = j["server"]["address"];
 		thread_num = j["server"]["thread_num"];
 		keep_alive_count = j["server"]["keep_alive_count"];
+		index_dir = j["server"]["index_dir"];
 
 		languageDetector = LanguageDetector(j["languages"]["token_share"],
 			j["languages"]["en_common_share"]);
@@ -251,24 +263,169 @@ public:
 		return json(articles).dump(indent_space_amount);
 	}
 
-	int run_http_indexing(string filename, int seconds, string content)
+	int run_http_loading()
 	{
-		int status = 201;
+		vector<string> paths = get_filename_list(index_dir);
+
+		#pragma omp parallel for
+		for (auto it = paths.begin(); it < paths.end(); it++)
+		{
+			string path(*it);
+            string filename = get_filename_only(path);
+			Article article(path.c_str(), filename);
+			string lang_code = languageDetector.detect(article.get_text_tk());
+
+			if(lang_code == "en" || lang_code == "ru")
+			{
+				if(newsDetector.is_news(article.get_header_tk(), lang_code))
+				{
+					string category = categoryClassifier.classify(article.get_text_tk(), lang_code);
+					article.set_category(category);
+					article.set_lang_code(lang_code);
+
+					#pragma omp critical
+					{
+						threadManager.add(article);
+					}
+				}
+			}
+	    }
+
+	    return 1;
+	}
+
+	int run_http_indexing(string path, int seconds, string content)
+	{
+		int status = 204;  // status by default
+		bool is_saved_to_file = false;
+		bool is_already_indexed = false;
+		string filename = get_filename_only(path);
+		string full_path = get_full_path(index_dir, filename);
+		Article article(utf8_to_wstring(content), filename);
+
+		for(const auto & [article_key, article] : threadManager.get_articles())
+		{
+			if(article_key == filename)
+			{
+				is_already_indexed = true;
+				break;
+			}
+		}
+
+		time_t last_article_time = threadManager.get_all_last_published_time();
+		time_t published_time = article.get_published_time();
+		int diff_time = difftime(published_time, last_article_time);
+		bool is_ttl_exceeded = diff_time > seconds;
+
+		if(is_already_indexed)
+		{
+			if(!is_ttl_exceeded)
+			{
+				is_saved_to_file = true;
+				threadManager.update(article);
+			}
+			else
+			{
+				threadManager.remove(filename);
+				remove_file(full_path.c_str());
+			}
+		}
+		else
+		{
+			if(!is_ttl_exceeded)
+			{
+				string lang_code = languageDetector.detect(article.get_text_tk());
+
+				if(lang_code == "en" || lang_code == "ru")
+				{
+					if(newsDetector.is_news(article.get_header_tk(), lang_code))
+					{
+						string category = categoryClassifier.classify(article.get_text_tk(), lang_code);
+						article.set_category(category);
+						threadManager.add(article);
+						is_saved_to_file = true;
+						status = 201;
+					}
+				}
+			}
+		}
+
+		if(is_saved_to_file)
+		{
+			save_file(full_path.c_str(), content);
+		}
+
 		return status;
 	}
 
-	int run_http_removing(string filename)
+	int run_http_removing(string path)
 	{
-		int status = 204;
+		int status;
+		bool is_already_indexed = false;
+		string filename = get_filename_only(path);
+		string full_path = get_full_path(index_dir, filename);
+
+		for(const auto & [article_key, article] : threadManager.get_articles())
+		{
+			if(article_key == filename)
+			{
+				is_already_indexed = true;
+				break;
+			}
+		}
+
+		if(is_already_indexed)
+		{
+			threadManager.remove(filename);
+			remove_file(full_path.c_str());
+			status = 204;
+		}
+		else
+		{
+			status = 404;
+		}
+
 		return status;
 	}
 
 	tuple<int, string> run_http_ranking(int period, string lang_code, string category)
 	{
+		int status = 200;
 		map<string, vector<ra::RankedArticles>> articles;
 		articles["threads"] = vector<ra::RankedArticles>();
-		tuple<int, string> status_body(200, json(articles).dump(indent_space_amount));
-		return status_body;
+		time_t time_now = get_time_now();
+
+		for(auto [thread_index, articles_thread] : threadManager.get_threads())
+		{
+			time_t last_published_time = threadManager.get_last_published_time(thread_index);
+			int diff_time = difftime(time_now, last_published_time);
+
+			if(diff_time > period)
+			{
+				continue;
+			}
+
+			string lang_code_now = threadManager.get_thread_lang_code(thread_index);
+
+			if(lang_code != lang_code_now)
+			{
+				continue;
+			}
+
+			string category_now = threadManager.get_thread_category(thread_index);
+
+			if(category != "any" && category != category_now)
+			{
+				continue;
+			}
+
+			string title = threadManager.get_thread_title(thread_index);
+			vector<string> article_keys = articles_thread.get_article_keys();
+			articles["threads"].push_back(ra::RankedArticles{ title, category_now, article_keys});
+		}
+
+		sort(articles["threads"].begin(), articles["threads"].end());
+		return tuple<int, string>(status, json(articles).dump(indent_space_amount));
 	}
 };
 

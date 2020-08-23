@@ -15,6 +15,7 @@ class Article
 	vector<wstring> text_tk;
 
 	string lang_code;
+	string category;
 	int thread_index;
 public:
 	Article() {}
@@ -22,8 +23,20 @@ public:
 	Article(const char* path, string filename_only)
 	{
 		this->filename_only = filename_only;
-
 		HTMLDocument htmlDocument(path);
+		parse(htmlDocument);
+	}
+
+	Article(wstring content, string filename_only)
+	{
+		this->filename_only = filename_only;
+		HTMLDocument htmlDocument(content);
+		parse(htmlDocument);
+	}
+
+private:
+	void parse(HTMLDocument &htmlDocument)
+	{
 		published_time = htmlDocument.get_published_time();
 		short_url = htmlDocument.get_short_url();
 		header_raw = htmlDocument.get_header();
@@ -33,9 +46,11 @@ public:
 		text_tk = tokenize_with_punctuation(text_raw);
 
 		lang_code = "other";
+		category = "other";
 		thread_index = -1;
 	}
 
+public:
 	time_t get_published_time()
 	{
 		return published_time;
@@ -84,6 +99,16 @@ public:
 	string get_lang_code()
 	{
 		return lang_code;
+	}
+
+	void set_category(string category)
+	{
+		this->category = category;
+	}
+
+	string get_category()
+	{
+		return category;
 	}
 };
 

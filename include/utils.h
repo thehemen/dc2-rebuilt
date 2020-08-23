@@ -7,6 +7,8 @@
 #include <regex>
 #include <iomanip>
 #include <algorithm>
+#include <chrono>
+#include <stdio.h>
 #include <experimental/filesystem>
 
 #ifndef UTILS_H
@@ -23,6 +25,30 @@ wstring read_file(const char* filename)
     istream << ifile.rdbuf();
     ifile.close();
     return istream.str();
+}
+
+string get_full_path(string directory, string filename)
+{
+	ostringstream out;
+	out << directory << "/" << filename;
+	return out.str();
+}
+
+void save_file(const char* filename, string str)
+{
+	ofstream ofile(filename);
+	ofile << str;
+	ofile.close();
+}
+
+int remove_file(const char* filename)
+{
+	return remove(filename);
+}
+
+time_t get_time_now()
+{
+	return chrono::system_clock::to_time_t(chrono::system_clock::now());
 }
 
 vector<size_t> find_all(wstring wstr, wstring wsubstr)

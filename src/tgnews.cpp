@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
 	}
     else if(op_type == "server")
     {
-    	string address("localhost");
+		string address(engine.address);
     	int port = stoi(op_value);
 		int thread_num = engine.thread_num;
 		int keep_alive_count = engine.keep_alive_count;

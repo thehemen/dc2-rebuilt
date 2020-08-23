@@ -140,6 +140,8 @@ public:
 
 class HTTPManager
 {
+	bool is_ready;
+
 	int thread_num;
 	Engine engine;
 
@@ -150,6 +152,8 @@ class HTTPManager
 
 	mutex out_mu;
 	HTTPResponseQueue responses;
+
+	mutex proc_mu;  // Mutex to be locked when processing the articles.
 public:
 	HTTPManager(int thread_num, Engine& engine)
 	{
@@ -159,15 +163,21 @@ public:
 		threads = vector<thread>();
 		requests = HTTPRequestQueue();
 		responses = HTTPResponseQueue();
+
+		is_ready = false;
 	}
 
 	void poll()
 	{
+		thread init_t([&] (HTTPManager* httpManager) { httpManager->init(); }, this);
+
 		for(int i = 0; i < thread_num; ++i)
 		{
 			thread t([&] (HTTPManager* httpManager) { httpManager->update(); }, this);
 			threads.push_back(move(t));
 		}
+
+		init_t.join();
 
 		for(int i = 0; i < thread_num; ++i)
 		{
@@ -220,6 +230,14 @@ public:
 	}
 
 private:
+	void init()
+	{
+		proc_mu.lock();
+		engine.run_http_loading();
+		proc_mu.unlock();
+		is_ready = true;
+	}
+
 	void update()
 	{
 		while(true)
@@ -234,32 +252,45 @@ private:
 				in_mu.unlock();
 
 				HTTPResponse res;
-				switch(req.type)
+
+				if(is_ready)
 				{
-					case HTTPRequestType::Index:
+					switch(req.type)
 					{
-						int status = engine.run_http_indexing(req.str_val["filename"],
-							req.int_val["seconds"],
-							req.str_val["content"]);
-						res = HTTPResponse(status);
-						break;
-					}
+						case HTTPRequestType::Index:
+						{
+							proc_mu.lock();
+							int status = engine.run_http_indexing(req.str_val["filename"],
+								req.int_val["seconds"],
+								req.str_val["content"]);
+							proc_mu.unlock();
+							res = HTTPResponse(status);
+							break;
+						}
 
-					case HTTPRequestType::Remove:
-					{
-						int status = engine.run_http_removing(req.str_val["filename"]);
-						res = HTTPResponse(status);
-						break;
-					}
+						case HTTPRequestType::Remove:
+						{
+							proc_mu.lock();
+							int status = engine.run_http_removing(req.str_val["filename"]);
+							proc_mu.unlock();
+							res = HTTPResponse(status);
+							break;
+						}
 
-					case HTTPRequestType::Rank:
-					{
-						auto status_body = engine.run_http_ranking(req.int_val["period"],
-							req.str_val["lang_code"],
-							req.str_val["category"]);
-						res = HTTPResponse(get<0>(status_body), get<1>(status_body));
-						break;
+						case HTTPRequestType::Rank:
+						{
+							auto status_body = engine.run_http_ranking(req.int_val["period"],
+								req.str_val["lang_code"],
+								req.str_val["category"]);
+							res = HTTPResponse(get<0>(status_body), get<1>(status_body));
+							break;
+						}
 					}
+				}
+				else
+				{
+					int status = 503;
+					res = HTTPResponse(status);
 				}
 
 				out_mu.lock();
