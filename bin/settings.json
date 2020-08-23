@@ -7,5 +7,9 @@
 	"ru_category_filename": "ru_key_words.txt",
 	"category_min_char_share": 0.75,
 	"category_en_min_token_count": 4,
-	"category_ru_min_token_count": 2
+	"category_ru_min_token_count": 2,
+	"threads_en_min_similar_token_count": 3,
+	"threads_ru_min_similar_token_count": 5,
+	"threads_en_min_similarity": 0.65,
+	"threads_ru_min_similarity": 0.85
 }

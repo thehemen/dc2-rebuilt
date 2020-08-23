@@ -1,4 +1,6 @@
 #include <vector>
+#include <map>
+#include <set>
 #include <cwctype>
 #include <algorithm>
 #include <utils.h>
@@ -107,6 +109,84 @@ TokenType get_token_type(wstring token)
 	{
 		return TokenType::Other;
 	}
+}
+
+set<wstring> get_uppercase_tokens(vector<wstring> tokens, string lang_code)
+{
+	map<string, wchar_t> start_letter = {{"en", L'A'}, {"ru", L'А'}};
+	map<string, wchar_t> end_letter = {{"en", L'Z'}, {"ru", L'Я'}};
+	vector<wchar_t> sentence_end_chars = { L'.', L'!', L'?', L'\"', L'“', L'«' };
+
+	set<wstring> uppercase_tokens;
+	bool is_sentence_start = true;
+
+	vector<wstring> uppercase_by_sentence;
+	int sentence_len = 0;
+
+	for(const auto & token : tokens)
+	{
+		if(token.size() == 0)
+		{
+			continue;
+		}
+
+		TokenType tokenType = get_token_type(token);
+
+		if(is_sentence_start)
+		{
+			if(tokenType != TokenType::Punctuation)
+			{
+				is_sentence_start = false;
+				continue;
+			}
+		}
+
+		wchar_t start_character = token[0];
+
+		// A pronoun "I" is always uppercase in English.
+		if(lang_code == "en" && token.size() == 1 && start_character == L'I')
+		{
+			continue;
+		}
+
+		if(tokenType == TokenType::Latin || tokenType == TokenType::Cyrillic)
+		{
+			if(start_character >= start_letter["en"] && start_character <= end_letter["en"] ||
+				start_character >= start_letter["ru"] && start_character <= end_letter["ru"])
+			{
+				uppercase_by_sentence.push_back(token);
+			}
+		}
+		else if(tokenType == TokenType::Punctuation)
+		{
+			for(wchar_t sentence_end_char : sentence_end_chars)
+			{
+				if(start_character == sentence_end_char)
+				{
+					// Add uppercase tokens only if they don't fill all the sentence.
+					int uppercase_num = uppercase_by_sentence.size();
+
+					if(uppercase_num < sentence_len)
+					{
+						uppercase_tokens.insert(uppercase_by_sentence.begin(),
+							uppercase_by_sentence.end());
+					}
+
+					uppercase_by_sentence.clear();
+					is_sentence_start = true;
+					sentence_len = 0;
+					break;
+				}
+			}
+		}
+
+		if(!is_sentence_start)
+		{
+			sentence_len++;
+		}
+	}
+
+	return uppercase_tokens;
 }
 
 #endif
