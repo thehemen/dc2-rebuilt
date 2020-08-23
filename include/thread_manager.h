@@ -41,6 +41,8 @@ class ThreadManager
 	map<string, Article> articles;
 	map<wstring, vector<string>> keys_by_token;
 public:
+	ThreadManager() {}
+
 	ThreadManager(map<string, int> min_similar_token_count, map<string, double> threads_min_similarity)
 	{
 		this->min_similar_token_count = min_similar_token_count;

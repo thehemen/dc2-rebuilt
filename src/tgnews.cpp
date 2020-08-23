@@ -44,8 +44,8 @@ int main(int argc, char *argv[])
     {
     	string address("localhost");
     	int port = stoi(op_value);
-		int thread_num = 4;
-		int keep_alive_count = 100;
+		int thread_num = engine.thread_num;
+		int keep_alive_count = engine.keep_alive_count;
 
 		HTTPManager httpManager(thread_num, engine);
 		thread httpManThread([&] (HTTPManager* httpManager) { httpManager->poll(); }, &httpManager);

@@ -12,6 +12,8 @@ class LanguageDetector
 	vector<wchar_t> ru_vowels;
 	wchar_t ru_hardsign;
 public:
+	LanguageDetector() {}
+
 	LanguageDetector(double word_share, double en_common_share)
 	{
 		this->en_common_words = {L"an", L"and", L"in", L"of", L"on", L"the", L"that", L"to", L"is"};

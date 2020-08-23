@@ -92,17 +92,16 @@ namespace ra {
 
 class Engine
 {
-	int indent_space_amount;
-	int openmp_num_threads;
-	double language_token_share;
-    double language_en_common_share;
-    string en_category_filename;
-    string ru_category_filename;
-    double category_min_char_share;
-    map<string, int> category_min_token_count;
-    map<string, int> threads_min_similar_token_count;
-    map<string, double> threads_min_similarity;
+    LanguageDetector languageDetector;
+    NewsDetector newsDetector;
+    CategoryClassifier categoryClassifier;
+    ThreadManager threadManager;
+
 public:
+	int indent_space_amount;
+	int thread_num;
+	int keep_alive_count;
+
 	Engine() {}
 
 	Engine(string filename)
@@ -112,17 +111,20 @@ public:
 		i >> j;
 
 		indent_space_amount = j["indent_space_amount"];
-		openmp_num_threads = j["openmp_num_threads"];
-		language_token_share = j["language_token_share"];
-		language_en_common_share = j["language_en_common_share"];
-		en_category_filename = j["en_category_filename"];
-		ru_category_filename = j["ru_category_filename"];
-		category_min_char_share = j["category_min_char_share"];
-		category_min_token_count = {{"en", j["category_en_min_token_count"]}, {"ru", j["category_ru_min_token_count"]}};
-		threads_min_similar_token_count = {{"en", j["threads_en_min_similar_token_count"]}, {"ru", j["threads_ru_min_similar_token_count"]}};
-		threads_min_similarity = {{"en", j["threads_en_min_similarity"]}, {"ru", j["threads_ru_min_similarity"]}};
+		thread_num = j["server"]["thread_num"];
+		keep_alive_count = j["server"]["keep_alive_count"];
 
-		omp_set_num_threads(openmp_num_threads);
+		languageDetector = LanguageDetector(j["languages"]["token_share"],
+			j["languages"]["en_common_share"]);
+		newsDetector = NewsDetector();
+		categoryClassifier = CategoryClassifier(j["categories"]["filename"]["en"],
+			j["categories"]["filename"]["ru"],
+			j["categories"]["min_char_share"],
+			j["categories"]["min_token_count"]);
+		threadManager = ThreadManager(j["threads"]["min_similar_token_count"],
+			j["threads"]["min_similarity"]);
+
+		omp_set_num_threads(thread_num);
 	}
 
 	string run_cli_languages(string source_dir)
@@ -130,7 +132,6 @@ public:
 		vector<la::LanguageArticles> articles;
 		articles.push_back(la::LanguageArticles{"en", vector<string>()});
 		articles.push_back(la::LanguageArticles{"ru", vector<string>()});
-		LanguageDetector languageDetector(language_token_share, language_en_common_share);
 		vector<string> paths = get_filename_list(source_dir);
 
 		#pragma omp parallel for
@@ -158,8 +159,6 @@ public:
 	{
 		map<string, vector<string>> articles;
 		articles["articles"] = vector<string>();
-		LanguageDetector languageDetector(language_token_share, language_en_common_share);
-		NewsDetector newsDetector;
 		vector<string> paths = get_filename_list(source_dir);
 
 		#pragma omp parallel for
@@ -192,10 +191,6 @@ public:
 			articles.push_back(ca::CategoryArticles{category, vector<string>()});
 		}
 
-		LanguageDetector languageDetector(language_token_share, language_en_common_share);
-		NewsDetector newsDetector;
-		CategoryClassifier categoryClassifier(en_category_filename, ru_category_filename,
-			category_min_char_share, category_min_token_count);
 		vector<string> paths = get_filename_list(source_dir);
 
 		#pragma omp parallel for
@@ -223,10 +218,7 @@ public:
 	string run_cli_threads(string source_dir)
 	{
 		vector<ta::ThreadArticles> articles;
-		LanguageDetector languageDetector(language_token_share, language_en_common_share);
-		NewsDetector newsDetector;
 		vector<string> paths = get_filename_list(source_dir);
-		ThreadManager threadManager(threads_min_similar_token_count, threads_min_similarity);
 
 		#pragma omp parallel for
 		for (auto it = paths.begin(); it < paths.end(); it++)

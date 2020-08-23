@@ -1,15 +1,47 @@
 {
 	"indent_space_amount": 4,
-	"openmp_num_threads": 4,
-	"language_token_share": 0.95,
-	"language_en_common_share": 0.05,
-	"en_category_filename": "en_key_words.txt",
-	"ru_category_filename": "ru_key_words.txt",
-	"category_min_char_share": 0.75,
-	"category_en_min_token_count": 4,
-	"category_ru_min_token_count": 2,
-	"threads_en_min_similar_token_count": 3,
-	"threads_ru_min_similar_token_count": 5,
-	"threads_en_min_similarity": 0.65,
-	"threads_ru_min_similarity": 0.85
+
+	"server":
+	{
+		"thread_num": 4,
+		"keep_alive_count": 100
+	},
+
+	"languages":
+	{
+		"token_share": 0.95,
+		"en_common_share": 0.05
+	},
+
+	"categories":
+	{
+		"filename":
+		{
+			"en": "en_key_words.txt",
+			"ru": "ru_key_words.txt"
+		},
+
+		"min_token_count":
+		{
+			"en": 4,
+			"ru": 2
+		},
+
+		"min_char_share": 0.75
+	},
+
+	"threads":
+	{
+		"min_similar_token_count":
+		{
+			"en": 3,
+			"ru": 5
+		},
+
+		"min_similarity":
+		{
+			"en": 0.65,
+			"ru": 0.85
+		}
+	}
 }

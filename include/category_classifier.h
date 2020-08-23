@@ -17,6 +17,8 @@ class CategoryClassifier
 	double min_char_share;
 	map<string, int> min_token_count;
 public:
+	CategoryClassifier() {}
+
 	CategoryClassifier(string en_filename, string ru_filename, double min_char_share, map<string, int> min_token_count)
 	{
 		categories = set<string>();
