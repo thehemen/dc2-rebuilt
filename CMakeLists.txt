@@ -1,8 +1,14 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.13.0)
+
+if (POLICY CMP0048)
+	cmake_policy(SET CMP0048 NEW)
+endif (POLICY CMP0048)
+
 project(dc2-rebuilt)
 include_directories(include)
 include_directories("thirdparty/nlohmann_json/single_include/")
 include_directories("thirdparty/cpp-httplib/")
+include_directories("thirdparty/oleanderstemminglibrary/include/")
 file(GLOB SOURCES "src/*.cpp")
 link_libraries(stdc++fs)
 add_executable(tgnews ${SOURCES})
@@ -10,3 +16,4 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -lstdc++fs -pthread -fopenmp"
 set(JSON_BuildTests OFF CACHE INTERNAL "")
 add_subdirectory("thirdparty/nlohmann_json")
 add_subdirectory("thirdparty/cpp-httplib")
+add_subdirectory("thirdparty/oleanderstemminglibrary")

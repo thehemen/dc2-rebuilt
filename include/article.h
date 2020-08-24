@@ -109,6 +109,8 @@ public:
 
 	void set_lang_code(string lang_code)
 	{
+		make_stemming(lang_code, text_tk);
+		make_stemming(lang_code, header_tk);
 		this->lang_code = lang_code;
 	}
 

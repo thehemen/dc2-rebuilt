@@ -22,8 +22,8 @@ public:
 	CategoryClassifier(string en_filename, string ru_filename, double min_char_share, map<string, int> min_token_count)
 	{
 		categories = set<string>();
-		keywords["en"] = read_keywords(en_filename);
-		keywords["ru"] = read_keywords(ru_filename);
+		keywords["en"] = read_keywords(en_filename, "en");
+		keywords["ru"] = read_keywords(ru_filename, "ru");
 		this->min_char_share = min_char_share;
 		this->min_token_count = min_token_count;
 	}
@@ -90,7 +90,7 @@ public:
 	}
 
 private:
-	map<wstring, string> read_keywords(string filename)
+	map<wstring, string> read_keywords(string filename, string lang_code)
 	{
 		map<wstring, string> category_by_keyword;
 		wstring raw_data = read_file(filename.c_str());
@@ -108,6 +108,8 @@ private:
 			}
 			else
 			{
+				make_stemming(lang_code, tokens);
+
 				for(const auto & token : tokens)
 				{
 					categories.insert(category_now);

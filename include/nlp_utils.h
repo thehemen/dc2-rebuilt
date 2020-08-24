@@ -5,6 +5,9 @@
 #include <algorithm>
 #include <utils.h>
 
+#include <olestem/stemming/russian_stem.h>
+#include <olestem/stemming/english_stem.h>
+
 #ifndef NLP_UTILS_H
 #define NLP_UTILS_H
 
@@ -187,6 +190,28 @@ set<wstring> get_uppercase_tokens(vector<wstring> tokens, string lang_code)
 	}
 
 	return uppercase_tokens;
+}
+
+void make_stemming(string lang_code, vector<wstring>& words)
+{
+	if(lang_code == "en")
+	{
+		stemming::english_stem<> englishStemmer;
+
+		for(int i = 0, len = words.size(); i < len; ++i)
+		{
+			englishStemmer(words[i]);
+		}
+	}
+	else if(lang_code == "ru")
+	{
+		stemming::russian_stem<> russianStemmer;
+
+		for(int i = 0, len = words.size(); i < len; ++i)
+		{
+			russianStemmer(words[i]);
+		}
+	}
 }
 
 #endif

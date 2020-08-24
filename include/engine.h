@@ -223,6 +223,7 @@ public:
 			{
 				if(newsDetector.is_news(article.get_header_tk(), lang_code))
 				{
+					article.set_lang_code(lang_code);
 					string category = categoryClassifier.classify(article.get_text_tk(), lang_code);
 					int category_index = get_index_by_string(categories, category);
 
@@ -350,6 +351,7 @@ public:
 				{
 					if(newsDetector.is_news(article.get_header_tk(), lang_code))
 					{
+						article.set_lang_code(lang_code);
 						string category = categoryClassifier.classify(article.get_text_tk(), lang_code);
 						article.set_category(category);
 						threadManager.add(article);
