@@ -132,21 +132,22 @@ int get_index_by_string(vector<string> str_list, string str)
 	return distance(str_list.begin(), find(str_list.begin(), str_list.end(), str));
 } 
 
-pair<string, int> get_pair_by_max_value(map<string, int> counter)
+template <typename T>
+pair<T, int> get_pair_by_max_value(map<T, int> counter)
 {
-	string category_best("other");
+	T best_value;
 	int max_count = 0;
 
-	for(const auto & [category, count] : counter)
+	for(const auto & [val, count] : counter)
 	{
 		if(count > max_count)
 		{
+			best_value = val;
 			max_count = count;
-			category_best = category;
 		}
 	}
 
-	return pair<string, int>(category_best, max_count);
+	return pair<T, int>(best_value, max_count);
 }
 
 template <typename T>

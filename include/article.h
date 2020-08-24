@@ -19,8 +19,6 @@ class Article
 	string lang_code;
 	string category;
 	int thread_id;
-
-	vector<wstring> uppercase_tokens;
 public:
 	Article() {}
 
@@ -49,23 +47,18 @@ private:
 		header_tk = tokenize_with_punctuation(header_raw);
 		text_tk = tokenize_with_punctuation(text_raw);
 
+		// Make the header tokens lower to be compared for threads.
+		for(int i = 0, len = header_tk.size(); i < len; ++i)
+		{
+			tolower(header_tk[i]);
+		}
+
 		lang_code = "other";
 		category = "other";
 		thread_id = -1;
-		uppercase_tokens = vector<wstring>();
 	}
 
 public:
-	vector<wstring> get_upper_tokens()
-	{
-		if(uppercase_tokens.size() == 0)
-		{
-			set<wstring> up_token_set = get_uppercase_tokens(text_tk, lang_code);
-			uppercase_tokens = vector<wstring>{up_token_set.begin(), up_token_set.end()};
-		}
-
-		return uppercase_tokens;
-	}
 
 	time_t get_published_time()
 	{
@@ -85,6 +78,11 @@ public:
 	vector<wstring> get_header_tk()
 	{
 		return header_tk;
+	}
+
+	void update_header_tk(vector<wstring> header_tk)
+	{
+		this->header_tk = header_tk;
 	}
 
 	vector<wstring> get_text_tk()

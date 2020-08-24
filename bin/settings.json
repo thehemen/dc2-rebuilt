@@ -34,16 +34,12 @@
 
 	"threads":
 	{
-		"min_similar_token_count":
+		"stopwords":
 		{
-			"en": 3,
-			"ru": 3
+			"en": "en_stop_words.txt",
+			"ru": "ru_stop_words.txt"
 		},
 
-		"min_similarity":
-		{
-			"en": 0.4,
-			"ru": 0.85
-		}
+		"min_similarity": 0.5
 	}
 }

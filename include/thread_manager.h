@@ -13,7 +13,6 @@ class Thread
 {
 	string lang_code;
 	vector<string> article_keys;
-	int token_num;
 public:
 	Thread() {}
 
@@ -21,7 +20,6 @@ public:
 	{
 		article_keys = vector<string>{ article.get_filename_only() };
 		lang_code = article.get_lang_code();
-		token_num = article.get_upper_tokens().size();
 	}
 
 	void add(Article& article)
@@ -43,68 +41,60 @@ public:
 	{
 		return lang_code;
 	}
-
-	int get_token_num()
-	{
-		return token_num;
-	}
 };
 
 class ThreadManager
 {
-	map<string, int> min_similar_token_count;
-	map<string, double> threads_min_similarity;
+	double min_similarity;
 
-	int last_thread_id;
 	map<int, Thread> threads;
 	map<string, Article> articles;
-	map<wstring, vector<int>> ids_by_token;
+	map<wstring, vector<string>> keys_by_token;
+
+	int last_thread_id;
 	time_t last_article_time;
 public:
 	ThreadManager() {}
 
-	ThreadManager(map<string, int> min_similar_token_count, map<string, double> threads_min_similarity)
+	ThreadManager(double min_similarity)
 	{
-		this->min_similar_token_count = min_similar_token_count;
-		this->threads_min_similarity = threads_min_similarity;
+		this->min_similarity = min_similarity;
 
-		last_thread_id = 0;
 		threads = map<int, Thread>();
 		articles = map<string, Article>();
-		ids_by_token = map<wstring, vector<int>>();
+		keys_by_token = map<wstring, vector<string>>();
+
+		last_thread_id = 0;
 		last_article_time = 0;
 	}
 
 	bool add(Article& article)
 	{
 		string article_key = article.get_filename_only();
-		string lang_code = article.get_lang_code();
 
 		if(articles.count(article_key) == 0)
 		{
-			vector<wstring> uppercase_tokens = article.get_upper_tokens();
-			int thread_id = get_best_thread_id(uppercase_tokens, lang_code, article_key);
+			int thread_id = get_best_thread_id(article);
 
 			if(thread_id == -1)
 			{
 				thread_id = last_thread_id;
 				threads[thread_id] = Thread(article);
-				thread_id = last_thread_id;
 				last_thread_id++;
-
-				for(const auto & uppercase_token : uppercase_tokens)
-				{
-					if(ids_by_token.count(uppercase_token) == 0)
-					{
-						ids_by_token[uppercase_token] = vector<int>();
-					}
-
-					ids_by_token[uppercase_token].push_back(thread_id);
-				}
 			}
 			else
 			{
 				threads[thread_id].add(article);
+			}
+
+			for(const auto & token : article.get_header_tk())
+			{
+				if(keys_by_token.count(token) == 0)
+				{
+					keys_by_token[token] = vector<string>();
+				}
+
+				keys_by_token[token].push_back(article_key);
 			}
 
 			article.set_thread_id(thread_id);
@@ -236,7 +226,7 @@ public:
 				category_counter[category_now]++;
 			}
 
-			auto category_with_count = get_pair_by_max_value(category_counter);
+			auto category_with_count = get_pair_by_max_value<string>(category_counter);
 			category = get<0>(category_with_count);
 		}
 
@@ -266,57 +256,49 @@ public:
 	}
 
 private:
-	int get_best_thread_id(vector<wstring> uppercase_tokens, string lang_code, string article_key)
+	int get_best_thread_id(Article& article)
 	{
-		map<int, int> thread_counter;
+		int thread_id = -1;
+		map<string, int> article_counter;
+		vector<wstring> tokens = article.get_header_tk();
+		string lang_code = article.get_lang_code();
 
-		for(const auto & uppercase_token : uppercase_tokens)
+		for(const auto & token : tokens)
 		{
-			if(ids_by_token.count(uppercase_token) != 0)
+			if(keys_by_token.count(token) != 0)
 			{
-				for(const auto & thread_id : ids_by_token[uppercase_token])
+				for(const auto & article_key : keys_by_token[token])
 				{
-					string other_lang_code = threads[thread_id].get_lang_code();
-
-					if(other_lang_code != lang_code)
+					if(articles[article_key].get_lang_code() != lang_code)
 					{
 						continue;
 					}
 
-					if(thread_counter.count(thread_id) == 0)
+					if(article_counter.count(article_key) == 0)
 					{
-						thread_counter[thread_id] = 0;
+						article_counter[article_key] = 0;
 					}
 
-					thread_counter[thread_id]++;
+					article_counter[article_key]++;
 				}
 			}
 		}
 
-		int article_token_num = uppercase_tokens.size();
-		double max_similarity = 0.0;
-		int best_thread_id = -1;
+		auto article_with_count = get_pair_by_max_value<string>(article_counter);
+		string article_key = get<0>(article_with_count);
+		int similar_token_count = get<1>(article_with_count);
 
-		for(const auto & [thread_id, similar_token_num] : thread_counter)
+		int first_token_count = tokens.size();
+		int second_token_count = articles[article_key].get_header_tk().size();
+		int all_token_count = first_token_count + second_token_count - similar_token_count;
+		double similarity = (double)similar_token_count / all_token_count;
+
+		if(similarity > min_similarity)
 		{
-			if(similar_token_num >= min_similar_token_count[lang_code])
-			{
-				int thread_token_num = threads[thread_id].get_token_num();
-				int all_token_num = article_token_num + thread_token_num - similar_token_num;
-				double similarity = (double)similar_token_num / all_token_num;
-
-				if(similarity > threads_min_similarity[lang_code])
-				{
-					if(similarity > max_similarity)
-					{
-						max_similarity = similarity;
-						best_thread_id = thread_id;
-					}
-				}
-			}
+			thread_id = articles[article_key].get_thread_id();
 		}
 
-		return best_thread_id;
+		return thread_id;
 	}
 };
 

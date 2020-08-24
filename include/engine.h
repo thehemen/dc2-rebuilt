@@ -11,6 +11,7 @@
 #include <lang_detector.h>
 #include <news_detector.h>
 #include <category_classifier.h>
+#include <stopword_filter.h>
 #include <thread_manager.h>
 
 #ifndef ENGINE_H
@@ -101,6 +102,7 @@ class Engine
     LanguageDetector languageDetector;
     NewsDetector newsDetector;
     CategoryClassifier categoryClassifier;
+    StopwordFilter stopwordFilter;
     ThreadManager threadManager;
 
 public:
@@ -133,8 +135,9 @@ public:
 			j["categories"]["filename"]["ru"],
 			j["categories"]["min_char_share"],
 			j["categories"]["min_token_count"]);
-		threadManager = ThreadManager(j["threads"]["min_similar_token_count"],
-			j["threads"]["min_similarity"]);
+		stopwordFilter = StopwordFilter(j["threads"]["stopwords"]["en"],
+			j["threads"]["stopwords"]["ru"]);
+		threadManager = ThreadManager(j["threads"]["min_similarity"]);
 
 		omp_set_num_threads(thread_num);
 	}
@@ -256,6 +259,7 @@ public:
 				if(newsDetector.is_news(article.get_header_tk(), lang_code))
 				{
 					article.set_lang_code(lang_code);
+					article.update_header_tk(stopwordFilter.filter_stopwords(article.get_header_tk(), lang_code));
 					#pragma omp critical
 					{
 						threadManager.add(article);
@@ -293,6 +297,7 @@ public:
 					string category = categoryClassifier.classify(article.get_text_tk(), lang_code);
 					article.set_category(category);
 					article.set_lang_code(lang_code);
+					article.update_header_tk(stopwordFilter.filter_stopwords(article.get_header_tk(), lang_code));
 
 					#pragma omp critical
 					{
@@ -352,6 +357,7 @@ public:
 					if(newsDetector.is_news(article.get_header_tk(), lang_code))
 					{
 						article.set_lang_code(lang_code);
+						article.update_header_tk(stopwordFilter.filter_stopwords(article.get_header_tk(), lang_code));
 						string category = categoryClassifier.classify(article.get_text_tk(), lang_code);
 						article.set_category(category);
 						threadManager.add(article);

@@ -75,7 +75,7 @@ public:
 			}
 		}
 
-		auto category_num = get_pair_by_max_value(counter);
+		auto category_num = get_pair_by_max_value<string>(counter);
 		string category_best = get<0>(category_num);
 		int category_count = get<1>(category_num);
 
