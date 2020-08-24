@@ -325,7 +325,7 @@ public:
 		time_t last_article_time = threadManager.get_all_last_published_time();
 		time_t published_time = article.get_published_time();
 		int diff_time = difftime(published_time, last_article_time);
-		bool is_ttl_exceeded = diff_time > seconds;
+		bool is_ttl_exceeded = diff_time > seconds && last_article_time > 0;
 
 		if(is_already_indexed)
 		{
