@@ -1,3 +1,5 @@
+#include <vector>
+#include <set>
 #include <html_parser.h>
 #include <nlp_utils.h>
 
@@ -16,7 +18,9 @@ class Article
 
 	string lang_code;
 	string category;
-	int thread_index;
+	int thread_id;
+
+	vector<wstring> uppercase_tokens;
 public:
 	Article() {}
 
@@ -47,10 +51,22 @@ private:
 
 		lang_code = "other";
 		category = "other";
-		thread_index = -1;
+		thread_id = -1;
+		uppercase_tokens = vector<wstring>();
 	}
 
 public:
+	vector<wstring> get_upper_tokens()
+	{
+		if(uppercase_tokens.size() == 0)
+		{
+			set<wstring> up_token_set = get_uppercase_tokens(text_tk, lang_code);
+			uppercase_tokens = vector<wstring>{up_token_set.begin(), up_token_set.end()};
+		}
+
+		return uppercase_tokens;
+	}
+
 	time_t get_published_time()
 	{
 		return published_time;
@@ -81,14 +97,14 @@ public:
 		return filename_only;
 	}
 
-	void set_thread_index(int thread_index)
+	void set_thread_id(int thread_id)
 	{
-		this->thread_index = thread_index;
+		this->thread_id = thread_id;
 	}
 
-	int get_thread_index()
+	int get_thread_id()
 	{
-		return thread_index;
+		return thread_id;
 	}
 
 	void set_lang_code(string lang_code)

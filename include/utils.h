@@ -149,4 +149,15 @@ pair<string, int> get_pair_by_max_value(map<string, int> counter)
 	return pair<string, int>(category_best, max_count);
 }
 
+template <typename T>
+void remove_if_exists(vector<T>& vec, T elem)
+{
+    auto pos = find(vec.begin(), vec.end(), elem);
+
+	if (pos != vec.end())
+	{
+	    vec.erase(pos);
+	}
+}
+
 #endif
