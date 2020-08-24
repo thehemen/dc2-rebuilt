@@ -154,13 +154,16 @@ public:
 			Article article(path.c_str(), filename);
 			string lang_code = languageDetector.detect(article.get_text_tk());
 
-			if(lang_code == "en")
+			#pragma omp critical
 			{
-				articles[0].articles.push_back(filename);
-			}
-			else if(lang_code == "ru")
-			{
-				articles[1].articles.push_back(filename);
+				if(lang_code == "en")
+				{
+					articles[0].articles.push_back(filename);
+				}
+				else if(lang_code == "ru")
+				{
+					articles[1].articles.push_back(filename);
+				}
 			}
 	    }
 
@@ -185,7 +188,10 @@ public:
 			{
 				if(newsDetector.is_news(article.get_header_tk(), lang_code))
 				{
-					articles["articles"].push_back(filename);
+					#pragma omp critical
+					{
+						articles["articles"].push_back(filename);
+					}
 				}
 			}
 	    }
@@ -219,7 +225,11 @@ public:
 				{
 					string category = categoryClassifier.classify(article.get_text_tk(), lang_code);
 					int category_index = get_index_by_string(categories, category);
-					articles[category_index].articles.push_back(filename);
+
+					#pragma omp critical
+					{
+						articles[category_index].articles.push_back(filename);
+					}
 				}
 			}
 	    }
