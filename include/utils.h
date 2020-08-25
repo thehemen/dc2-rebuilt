@@ -127,9 +127,19 @@ string get_filename_only(string filename)
 	return filename.substr(filename.find_last_of("/\\") + 1);
 }
 
-int get_index_by_string(vector<string> str_list, string str) 
+template <typename T>
+int get_index_by_value(vector<T> vals, T val)
 { 
-	return distance(str_list.begin(), find(str_list.begin(), str_list.end(), str));
+	auto pos = find(vals.begin(), vals.end(), val);
+
+	if(pos != vals.end())
+	{
+		return distance(vals.begin(), pos);
+	}
+	else
+	{
+		return -1;
+	}
 } 
 
 template <typename T>
@@ -151,13 +161,34 @@ pair<T, int> get_pair_by_max_value(map<T, int> counter)
 }
 
 template <typename T>
-void remove_if_exists(vector<T>& vec, T elem)
+bool remove_if_exists(vector<T>& vec, T elem)
 {
     auto pos = find(vec.begin(), vec.end(), elem);
 
 	if (pos != vec.end())
 	{
 	    vec.erase(pos);
+	    return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+template <typename T1, typename T2>
+bool remove_map_elem_if_exists(map<T1, T2>& my_map, T1 elem)
+{
+    auto pos = my_map.find(elem);
+
+	if (pos != my_map.end())
+	{
+	    my_map.erase(pos);
+	    return true;
+	}
+	else
+	{
+		return false;
 	}
 }
 

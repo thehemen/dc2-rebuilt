@@ -18,7 +18,6 @@ class Article
 
 	string lang_code;
 	string category;
-	int thread_id;
 public:
 	Article() {}
 
@@ -55,7 +54,6 @@ private:
 
 		lang_code = "other";
 		category = "other";
-		thread_id = -1;
 	}
 
 public:
@@ -93,16 +91,6 @@ public:
 	string get_filename_only()
 	{
 		return filename_only;
-	}
-
-	void set_thread_id(int thread_id)
-	{
-		this->thread_id = thread_id;
-	}
-
-	int get_thread_id()
-	{
-		return thread_id;
 	}
 
 	void set_lang_code(string lang_code)

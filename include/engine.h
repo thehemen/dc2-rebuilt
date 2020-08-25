@@ -228,7 +228,7 @@ public:
 				{
 					article.set_lang_code(lang_code);
 					string category = categoryClassifier.classify(article.get_text_tk(), lang_code);
-					int category_index = get_index_by_string(categories, category);
+					int category_index = get_index_by_value<string>(categories, category);
 
 					#pragma omp critical
 					{
@@ -268,10 +268,10 @@ public:
 			}
 	    }
 
-	    for(auto & [thread_id, news_thread] : threadManager.get_threads())
+	    for(auto & [thread_id, article_thread] : threadManager.get_index_threads())
 	    {
-			articles.push_back(ta::ThreadArticles{threadManager.get_thread_title(thread_id), 
-				news_thread.get_article_keys()});
+			articles.push_back(ta::ThreadArticles{article_thread.get_title(), 
+				article_thread.get_article_keys()});
 	    }
 
 	    sort(articles.begin(), articles.end());
@@ -319,13 +319,9 @@ public:
 		string full_path = get_full_path(index_dir, filename);
 		Article article(utf8_to_wstring(content), filename);
 
-		for(const auto & [article_key, article] : threadManager.get_articles())
+		if(threadManager.is_article_available_by_key(filename))
 		{
-			if(article_key == filename)
-			{
-				is_already_indexed = true;
-				break;
-			}
+			is_already_indexed = true;
 		}
 
 		time_t last_article_time = threadManager.get_all_last_published_time();
@@ -383,13 +379,9 @@ public:
 		string filename = get_filename_only(path);
 		string full_path = get_full_path(index_dir, filename);
 
-		for(const auto & [article_key, article] : threadManager.get_articles())
+		if(threadManager.is_article_available_by_key(filename))
 		{
-			if(article_key == filename)
-			{
-				is_already_indexed = true;
-				break;
-			}
+			is_already_indexed = true;
 		}
 
 		if(is_already_indexed)
@@ -413,9 +405,9 @@ public:
 		articles["threads"] = vector<ra::RankedArticles>();
 		time_t time_now = get_time_now();
 
-		for(auto [thread_index, articles_thread] : threadManager.get_threads())
+		for(auto [thread_id, article_thread] : threadManager.get_index_threads())
 		{
-			time_t last_published_time = threadManager.get_last_published_time(thread_index);
+			time_t last_published_time = article_thread.get_last_published_time();
 			int diff_time = difftime(time_now, last_published_time);
 
 			if(diff_time > period)
@@ -423,22 +415,22 @@ public:
 				continue;
 			}
 
-			string lang_code_now = threadManager.get_thread_lang_code(thread_index);
+			string lang_code_now = article_thread.get_lang_code();
 
 			if(lang_code != lang_code_now)
 			{
 				continue;
 			}
 
-			string category_now = threadManager.get_thread_category(thread_index);
+			string category_now = article_thread.get_category();
 
 			if(category != "any" && category != category_now)
 			{
 				continue;
 			}
 
-			string title = threadManager.get_thread_title(thread_index);
-			vector<string> article_keys = articles_thread.get_article_keys();
+			string title = article_thread.get_title();
+			vector<string> article_keys = article_thread.get_article_keys();
 			articles["threads"].push_back(ra::RankedArticles{ title, category_now, article_keys});
 		}
 
