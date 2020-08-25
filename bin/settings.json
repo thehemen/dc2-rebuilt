@@ -11,7 +11,7 @@
 
 	"languages":
 	{
-		"token_share": 0.95,
+		"token_share": 0.7,
 		"en_common_share": 0.05
 	},
 
