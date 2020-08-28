@@ -152,8 +152,6 @@ class HTTPManager
 
 	mutex out_mu;
 	HTTPResponseQueue responses;
-
-	mutex proc_mu;  // Mutex to be locked when processing the articles.
 public:
 	HTTPManager(int thread_num, Engine& engine)
 	{
@@ -232,9 +230,7 @@ public:
 private:
 	void init()
 	{
-		proc_mu.lock();
 		engine.run_http_loading();
-		proc_mu.unlock();
 		is_ready = true;
 	}
 
@@ -259,20 +255,16 @@ private:
 					{
 						case HTTPRequestType::Index:
 						{
-							proc_mu.lock();
 							int status = engine.run_http_indexing(req.str_val["filename"],
 								req.int_val["seconds"],
 								req.str_val["content"]);
-							proc_mu.unlock();
 							res = HTTPResponse(status);
 							break;
 						}
 
 						case HTTPRequestType::Remove:
 						{
-							proc_mu.lock();
 							int status = engine.run_http_removing(req.str_val["filename"]);
-							proc_mu.unlock();
 							res = HTTPResponse(status);
 							break;
 						}

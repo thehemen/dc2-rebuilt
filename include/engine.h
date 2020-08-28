@@ -318,39 +318,47 @@ public:
 		string filename = get_filename_only(path);
 		string full_path = get_full_path(index_dir, filename);
 		Article article(utf8_to_wstring(content), filename);
+		string lang_code = languageDetector.detect(article.get_text_tk());
+		bool is_to_be_indexed = false;
 
-		if(threadManager.is_article_available_by_key(filename))
+		if(lang_code == "en" || lang_code == "ru")
 		{
-			is_already_indexed = true;
-		}
-
-		time_t last_article_time = threadManager.get_all_last_published_time();
-		time_t published_time = article.get_published_time();
-		int diff_time = difftime(published_time, last_article_time);
-		bool is_ttl_exceeded = diff_time > seconds && last_article_time > 0;
-
-		if(is_already_indexed)
-		{
-			if(!is_ttl_exceeded)
+			if(newsDetector.is_news(article.get_header_tk(), lang_code))
 			{
-				is_saved_to_file = true;
-				threadManager.update(article);
-			}
-			else
-			{
-				threadManager.remove(filename);
-				remove_file(full_path.c_str());
+				is_to_be_indexed = true;
 			}
 		}
-		else
-		{
-			if(!is_ttl_exceeded)
-			{
-				string lang_code = languageDetector.detect(article.get_text_tk());
 
-				if(lang_code == "en" || lang_code == "ru")
+		if(is_to_be_indexed)
+		{
+			#pragma omp critical
+			{
+				if(threadManager.is_article_available_by_key(filename))
 				{
-					if(newsDetector.is_news(article.get_header_tk(), lang_code))
+					is_already_indexed = true;
+				}
+
+				time_t last_article_time = threadManager.get_all_last_published_time();
+				time_t published_time = article.get_published_time();
+				int diff_time = difftime(published_time, last_article_time);
+				bool is_ttl_exceeded = diff_time > seconds && last_article_time > 0;
+
+				if(is_already_indexed)
+				{
+					if(!is_ttl_exceeded)
+					{
+						is_saved_to_file = true;
+						threadManager.update(article);
+					}
+					else
+					{
+						threadManager.remove(filename);
+						remove_file(full_path.c_str());
+					}
+				}
+				else
+				{
+					if(!is_ttl_exceeded)
 					{
 						article.set_lang_code(lang_code);
 						article.update_header_tk(stopwordFilter.filter_stopwords(article.get_header_tk(), lang_code));
@@ -374,25 +382,19 @@ public:
 
 	int run_http_removing(string path)
 	{
-		int status;
+		int status = 404;  // status by default
 		bool is_already_indexed = false;
 		string filename = get_filename_only(path);
 		string full_path = get_full_path(index_dir, filename);
 
-		if(threadManager.is_article_available_by_key(filename))
+		#pragma omp critical
 		{
-			is_already_indexed = true;
-		}
-
-		if(is_already_indexed)
-		{
-			threadManager.remove(filename);
-			remove_file(full_path.c_str());
-			status = 204;
-		}
-		else
-		{
-			status = 404;
+			if(threadManager.is_article_available_by_key(filename))
+			{
+				threadManager.remove(filename);
+				remove_file(full_path.c_str());
+				status = 204;
+			}
 		}
 
 		return status;
